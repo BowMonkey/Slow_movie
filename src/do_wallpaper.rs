@@ -4,11 +4,11 @@ use std::time;
 
 use crate::config::Config;
 
-pub fn set_wallpaper(conf:&Config) {
+pub fn set_wallpaper(conf: &Config) {
     // all in loop
     //1. read movie path to get a picture of frame
-    //2. set picture as wallpaper 
-    //3. sleep 
+    //2. set picture as wallpaper
+    //3. sleep
     let current_path = env::current_dir().unwrap();
     loop {
         let final_path: String = current_path.display().to_string() + "\\frame.png";

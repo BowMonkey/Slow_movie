@@ -1,14 +1,13 @@
 use std::env;
 use std::fs;
-use std::io::{Read, Write};
 
-use image::error::ParameterErrorKind;
 use serde::{Deserialize, Serialize};
 
 use crate::Timetype;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
+    config_path: String,
     movie_path: String,
     time_interval: i32,
     time_type: i32,
@@ -17,12 +16,14 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Config {
-        Config {
-            movie_path: String::from(""),
-            time_interval: ((60 * 60) / 24) as i32,
-            time_type: 150,
-            frame_count: 1,
+        let conf = Config::default();
+
+        let conf_file = std::path::PathBuf::from(conf.config_path.clone());
+        if !conf_file.is_file() {
+            save_config(&conf);
         }
+
+        conf
     }
 
     pub fn set_time_type(&mut self, time_type: Timetype) {
@@ -55,41 +56,61 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let mut config_path = env::current_dir().unwrap();
-        config_path.push("Ayanami_Rei.mp4");
-        Config {
-            movie_path: String::from(config_path.to_str().unwrap()),
+        let mut movie_path = env::current_dir().unwrap();
+        movie_path.push("Ayanami_Rei.mp4");
+
+        let mut config_file_path = env::current_dir().unwrap();
+        config_file_path.push("config.json");
+
+        let conf = Config {
+            config_path: String::from(config_file_path.to_str().unwrap()),
+            movie_path: String::from(movie_path.to_str().unwrap()),
             time_interval: ((60 * 60) / 24) as i32,
-            time_type: 150,
+            time_type: 1,
             frame_count: 1,
-        }
+        };
+
+        conf
     }
 }
 
 pub fn load() -> Config {
-    let mut config_path = env::current_dir().unwrap();
-    config_path.push("config.json");
     let mut conf = Config::new();
-
-    if config_path.is_file() {
-        let configs = fs::read_to_string(config_path).unwrap();
-        conf = serde_json::from_str(configs.as_str()).unwrap();
-    } else {
-        conf = Config::default();
+    let conf_file = std::path::PathBuf::from(conf.config_path.clone());
+    if conf_file.is_file() {
+        let settings = fs::read_to_string(conf_file).unwrap();
+        conf = match serde_json::from_str(settings.as_str()) {
+            Ok(cont) => cont,
+            Err(why) => {
+                log::error!(
+                    "Serde_json convert config from string failed! Error Reason:{}",
+                    why
+                );
+                return conf;
+            }
+        };
     }
-
     conf
 }
 
-pub fn write(config: &Config) {
-    let mut config_path = env::current_dir().unwrap();
-    config_path.push("config.json");
-    let mut f = fs::File::create(config_path).unwrap();
-    let ret = f.write_all(serde_json::to_string(config).unwrap().as_bytes());
-    match ret {
-        Ok(_) => {}
+pub fn save_config(config: &Config) {
+    let contents = match serde_json::to_string(config) {
+        Ok(cont) => cont,
         Err(why) => {
-            println!("error:{}", why);
+            log::error!(
+                "Serde_json convert config to string failed! Error Reason:{}",
+                why
+            );
+            return;
+        }
+    };
+
+    match fs::write(config.config_path.clone(), contents.as_bytes()) {
+        Ok(_) => {
+            log::info!("Save config file ok!");
+        }
+        Err(why) => {
+            log::error!("Save config file failed! Error Reason:{}", why);
         }
     }
 }

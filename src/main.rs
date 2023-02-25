@@ -1,10 +1,17 @@
+#![windows_subsystem = "windows"]
 use iced::alignment;
 use iced::executor;
 use iced::theme::Theme;
 use iced::widget::{button, column, container, horizontal_space, pick_list, row, text, text_input};
 use iced::{window, Application, Color, Command, Element, Length, Settings};
 
-use native_dialog::FileDialog;
+use native_dialog::{FileDialog, MessageDialog, MessageType};
+
+use fast_log::config::Config;
+use fast_log::consts::LogSize;
+use fast_log::plugin::file_split::RollingType;
+use fast_log::plugin::packer::GZipPacker;
+use log::{error, info, warn, LevelFilter};
 
 use std::env;
 
@@ -26,8 +33,7 @@ struct SlowMovie {
     theme: Theme,
     movie_path: String,
     time_str: String,
-    time_magnification: i32,
-    time_type: Option<Timetype>,
+    time_type: Timetype,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +72,7 @@ enum Message {
     TimeInputChanged(String),
     ButtonSelect,
     Confirm,
-    Flush(config::Config),
+    Exit,
 }
 
 impl Application for SlowMovie {
@@ -76,19 +82,42 @@ impl Application for SlowMovie {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
+        // logs
+        fast_log::init(
+            Config::new()
+                .chan_len(Some(100000))
+                .level(LevelFilter::Debug)
+                .file_split(
+                    "logs/", // current_exe dir
+                    LogSize::MB(5),
+                    RollingType::KeepNum(5),
+                    GZipPacker {},
+                ),
+        )
+        .unwrap();
+
+        //configs
+        log::debug!("start to load config file ...");
         let cur_config = config::load();
         let mut data = SlowMovie {
             theme: Theme::Dark,
             ..Self::default()
         };
         data.movie_path = cur_config.get_movie_path();
+        log::debug!("Movie path from config file:{}", data.movie_path);
         data.time_str = cur_config.get_time_interval().to_string();
+        log::debug!("Time from config file:{}", data.time_str);
         data.time_type = match cur_config.get_time_type() {
-            1 => Some(Timetype::Second),
-            2 => Some(Timetype::Minute),
-            3 => Some(Timetype::Hour),
-            _ => Some(Timetype::Second),
+            1 => Timetype::Second,
+            2 => Timetype::Minute,
+            3 => Timetype::Hour,
+            _ => Timetype::Second,
         };
+        log::debug!(
+            "Time type  from config file:{} [1:second 2:minute 3:hour 4:unknow]",
+            cur_config.get_time_type()
+        );
+
         (data, Command::none())
     }
 
@@ -99,46 +128,73 @@ impl Application for SlowMovie {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ButtonSelect => {
-                let cur_path = env::current_dir().unwrap();
-                let movie_file = FileDialog::new()
+                let cur_path = env::current_dir();
+
+                let cur_path = match cur_path {
+                    Ok(path) => path,
+                    Err(e) => {
+                        error!("Read current dir failed! Reason:{} Exit...", e);
+                        let _result = MessageDialog::new()
+                            .set_title("Error")
+                            .set_text("Read current dir path failed! ")
+                            .set_type(MessageType::Error)
+                            .show_alert();
+                        return Command::none();
+                    }
+                };
+                let movie_file = match FileDialog::new()
                     .set_location(&cur_path)
                     .show_open_single_file()
-                    .unwrap();
-                self.movie_path = movie_file.unwrap().display().to_string();
+                {
+                    Ok(f) => match f {
+                        Some(f) => f,
+                        None => {
+                            log::info!("User chosed file path is none.");
+                            return Command::none();
+                        }
+                    },
+                    Err(e) => {
+                        log::info!("User didend choose any file. Error:{}", e);
+                        return Command::none();
+                    }
+                };
+                self.movie_path = movie_file.display().to_string();
+                return Command::none();
             }
             Message::SetTime(timetype) => {
-                self.time_magnification = match timetype {
-                    Timetype::None => 1,
-                    Timetype::Second => 1,
-                    Timetype::Minute => 60,
-                    Timetype::Hour => 60 * 60,
-                };
-                self.time_type = Some(timetype);
+                self.time_type = timetype;
             }
-            Message::TimeInputChanged(value) => self.time_str = value,
+            Message::TimeInputChanged(value) => {
+                self.time_str = value;
+            }
             Message::Confirm => {
                 let mut conf = config::Config::new();
                 conf.set_movie_path(self.movie_path.clone());
-                conf.set_time_interval(self.time_str.parse::<i32>().unwrap());
-                conf.set_time_type(self.time_type.unwrap());
-                config::write(&conf);
-                //hide current window
+                let time = match self.time_str.parse::<i32>() {
+                    Ok(t) => t,
+                    Err(e) => {
+                        log::warn!("User input an invalid time string. Error:{}", e);
+                        let _result = MessageDialog::new()
+                            .set_title("Error")
+                            .set_text(format!("Input of time is invlid! Please input an number! Current input is \"{}\"", self.time_str).as_str())
+                            .set_type(MessageType::Error)
+                            .show_alert();
+                        return Command::none();
+                    }
+                };
+                conf.set_time_interval(time);
+                conf.set_time_type(self.time_type);
+                config::save_config(&conf);
                 // spawn a thread to run set_wallpaper(&config)
                 //do_wallpaper::set_wallpaper();
-                //SetMode(Hidden)
+                //return window::minimize(true);
+                return window::set_mode(window::Mode::Hidden);
+            }
+            Message::Exit => {
                 return window::close();
             }
-            Message::Flush(value) => {
-                self.movie_path = value.get_movie_path();
-                self.time_str = value.get_time_interval().to_string();
-                self.time_type = match value.get_time_type() {
-                    1 => Some(Timetype::Second),
-                    2 => Some(Timetype::Minute),
-                    3 => Some(Timetype::Hour),
-                    _ => None,
-                };
-            }
         }
+        log::logger().flush();
         Command::none()
     }
 
@@ -164,11 +220,11 @@ impl Application for SlowMovie {
         .padding(10)
         .size(20);
 
-        let pick_list = pick_list(&Timetype::ALL[..], self.time_type, Message::SetTime)
+        let pick_list = pick_list(&Timetype::ALL[..], Some(self.time_type), Message::SetTime)
             .placeholder("Choose a Timetype...")
             .text_size(30);
         let ok_button = button("confirm").padding(10).on_press(Message::Confirm);
-        let exit_button = button("exit").padding(10).on_press(Message::Confirm);
+        let exit_button = button("exit").padding(10).on_press(Message::Exit);
 
         let content = column![
             title,
