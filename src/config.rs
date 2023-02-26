@@ -9,7 +9,7 @@ use crate::Timetype;
 pub struct Config {
     config_path: String,
     movie_path: String,
-    time_interval: i32,
+    time_interval: u32,
     time_type: i32,
     frame_count: u64,
 }
@@ -38,10 +38,10 @@ impl Config {
         self.time_type
     }
 
-    pub fn set_time_interval(&mut self, time_interval: i32) {
+    pub fn set_time_interval(&mut self, time_interval: u32) {
         self.time_interval = time_interval;
     }
-    pub fn get_time_interval(&self) -> i32 {
+    pub fn get_time_interval(&self) -> u32 {
         self.time_interval
     }
 
@@ -51,6 +51,18 @@ impl Config {
 
     pub fn get_movie_path(&self) -> String {
         self.movie_path.clone()
+    }
+
+    pub fn set_frame_count(&mut self, count: u64) {
+        self.frame_count = count;
+    }
+
+    pub fn get_frame_count(&self) -> u64 {
+        self.frame_count
+    }
+
+    pub fn save(&self) {
+        save_config(self);
     }
 }
 
@@ -65,7 +77,7 @@ impl Default for Config {
         let conf = Config {
             config_path: String::from(config_file_path.to_str().unwrap()),
             movie_path: String::from(movie_path.to_str().unwrap()),
-            time_interval: ((60 * 60) / 24) as i32,
+            time_interval: ((60 * 60) / 24) as u32,
             time_type: 1,
             frame_count: 1,
         };

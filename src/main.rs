@@ -34,6 +34,7 @@ struct SlowMovie {
     movie_path: String,
     time_str: String,
     time_type: Timetype,
+    change_flag:bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,7 +160,7 @@ impl Application for SlowMovie {
                     }
                 };
                 self.movie_path = movie_file.display().to_string();
-                return Command::none();
+                self.change_flag = true;
             }
             Message::SetTime(timetype) => {
                 self.time_type = timetype;
@@ -168,10 +169,15 @@ impl Application for SlowMovie {
                 self.time_str = value;
             }
             Message::Confirm => {
-                let mut conf = config::Config::new();
+                let mut conf = config::load();
                 conf.set_movie_path(self.movie_path.clone());
-                let time = match self.time_str.parse::<i32>() {
-                    Ok(t) => t,
+                let time = match self.time_str.parse::<u32>() {
+                    Ok(mut t) => {
+                        if t < 3 {
+                            t = 3;
+                        }
+                        t
+                    }
                     Err(e) => {
                         log::warn!("User input an invalid time string. Error:{}", e);
                         let _result = MessageDialog::new()
@@ -184,9 +190,9 @@ impl Application for SlowMovie {
                 };
                 conf.set_time_interval(time);
                 conf.set_time_type(self.time_type);
+                if self.change_flag {conf.set_frame_count(0)};
                 config::save_config(&conf);
-                // spawn a thread to run set_wallpaper(&config)
-                //do_wallpaper::set_wallpaper();
+                do_wallpaper::set_wallpaper(conf);
                 //return window::minimize(true);
                 return window::set_mode(window::Mode::Hidden);
             }
