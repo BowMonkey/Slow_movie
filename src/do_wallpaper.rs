@@ -1,7 +1,9 @@
 use native_dialog::{MessageDialog, MessageType};
-use std::process::Command;
+use std::process::{Stdio,Command};
 use std::time::Duration;
 use std::{env, fs, thread};
+
+use std::os::windows::process::CommandExt;
 
 use crate::config::*;
 
@@ -30,16 +32,18 @@ pub fn set_wallpaper(mut conf: Config) {
                     }
                 };
                 let get_frame_count = ffprobe.display().to_string() + &String::from(" -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 ") + &conf.get_movie_path().clone() ;
-                let output = if cfg!(target_os = "windows") {
+                let child = if cfg!(target_os = "windows") {
                     Command::new("cmd")
-                        .args(["/C", &get_frame_count])
-                        .output()
+                        .args(["/C",  &get_frame_count])
+                        .creation_flags(0x08000000)
+                        .stdout(Stdio::piped())
+                        .spawn()
                         .expect("failed to execute process")
                 } else {
                     log::error!("Run ffprobe to get total frame of selected video error!");
                     return;
                 };
-
+                let output = child.wait_with_output().expect("failed to wait on child");
                 let total_frame = String::from_utf8_lossy(&output.stdout).to_string();
                 let total_frame = strip_trailing_newline(&total_frame);
                 let total_frame = match total_frame.parse::<u64>() {
@@ -127,16 +131,18 @@ pub fn set_wallpaper(mut conf: Config) {
                     + &String::from(r") -vsync 0 -vframes 1 -f image2 ")
                     + &picture_path;
                 log::info!("{}", get_frame_picture);
-                let output = if cfg!(target_os = "windows") {
+                let child = if cfg!(target_os = "windows") {
                     Command::new("cmd")
                         .args(["/C", &get_frame_picture])
-                        .output()
+                        .creation_flags(0x08000000)
+                        .stdout(Stdio::piped())
+                        .spawn()
                         .expect("failed to execute process")
                 } else {
                     log::error!("Run ffmpeg to extract frmae to picture error!");
                     return;
                 };
-
+                let output = child.wait_with_output().expect("Faile to wait on child.");
                 if !output.status.success() {
                     log::error!(
                         "Convert frame to picture error! Error:{}",
