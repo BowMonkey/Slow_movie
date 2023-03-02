@@ -18,7 +18,7 @@ use std::env;
 use utillib::load as config_load;
 use utillib::save_config;
 use utillib::Timetype;
-mod do_wallpaper;
+
 
 pub fn main() -> iced::Result {
     SlowMovie::run(Settings {
