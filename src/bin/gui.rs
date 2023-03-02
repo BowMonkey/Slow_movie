@@ -11,7 +11,7 @@ use fast_log::config::Config;
 use fast_log::consts::LogSize;
 use fast_log::plugin::file_split::RollingType;
 use fast_log::plugin::packer::GZipPacker;
-use log::{error, info, warn, LevelFilter};
+use log::{error, LevelFilter};
 
 use std::env;
 
@@ -36,12 +36,14 @@ struct SlowMovie {
     time_str: String,
     frame_str: String,
     time_type: Timetype,
+    frame_time_type: Timetype,
     change_flag: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     SetTime(Timetype),
+    SetFrameTime(Timetype),
     TimeInputChanged(String),
     FrameInputChanged(String),
     ButtonSelect,
@@ -92,6 +94,24 @@ impl Application for SlowMovie {
             cur_config.get_time_type()
         );
 
+        data.frame_time_type = match cur_config.get_frame_time_type() {
+            1 => Timetype::Second,
+            2 => Timetype::Minute,
+            3 => Timetype::Hour,
+            _ => Timetype::Second,
+        };
+        log::debug!(
+            "Frame Time type from config file:{} [1:second 2:minute 3:hour 4:unknow]",
+            cur_config.get_time_type()
+        );
+        let frame_count = cur_config.get_frame_count();
+        data.frame_str = match cur_config.get_frame_time_type() {
+            1 => (frame_count / 24).to_string(),
+            2 => (frame_count / 24 / 60).to_string(),
+            3 => (frame_count / 24 / 60 / 60).to_string(),
+            _ => (frame_count / 24).to_string(),
+        };
+        log::debug!("Frame Count from config file:{}", data.frame_str);
         (data, Command::none())
     }
 
@@ -138,6 +158,9 @@ impl Application for SlowMovie {
             Message::SetTime(timetype) => {
                 self.time_type = timetype;
             }
+            Message::SetFrameTime(timetype) => {
+                self.frame_time_type = timetype;
+            }
             Message::TimeInputChanged(value) => {
                 self.time_str = value;
             }
@@ -166,17 +189,12 @@ impl Application for SlowMovie {
                 };
 
                 let frame_sec = match self.frame_str.parse::<u64>() {
-                    Ok(mut t) => {
-                        if t < 0 {
-                            t = 0;
-                        }
-                        match self.time_type {
-                            Second => t,
-                            Minute => t * 60,
-                            Hour => t * 60 * 60,
-                            _ => t,
-                        }
-                    }
+                    Ok(t) => match self.frame_time_type {
+                        utillib::Timetype::Second => t,
+                        utillib::Timetype::Minute => t * 60,
+                        utillib::Timetype::Hour => t * 60 * 60,
+                        _ => t,
+                    },
                     Err(e) => {
                         log::warn!("User input an invalid frame time string. Error:{}", e);
                         let _result = MessageDialog::new()
@@ -189,6 +207,7 @@ impl Application for SlowMovie {
                 };
                 conf.set_time_interval(time);
                 conf.set_time_type(self.time_type);
+                conf.set_frame_time_type(self.frame_time_type);
                 conf.set_exit_flag(false);
                 conf.set_frame_count(frame_sec * 24);
                 save_config(&conf);
@@ -239,9 +258,13 @@ impl Application for SlowMovie {
         .padding(10)
         .size(20);
 
-        let frame_pick_list = pick_list(&Timetype::ALL[..], Some(self.time_type), Message::SetTime)
-            .placeholder("Choose a Timetype...")
-            .text_size(30);
+        let frame_pick_list = pick_list(
+            &Timetype::ALL[..],
+            Some(self.frame_time_type),
+            Message::SetFrameTime,
+        )
+        .placeholder("Choose a Timetype...")
+        .text_size(30);
 
         let ok_button = button("confirm").padding(10).on_press(Message::Confirm);
         let exit_button = button("exit").padding(10).on_press(Message::Exit);

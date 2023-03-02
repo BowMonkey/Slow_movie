@@ -38,6 +38,7 @@ pub struct Config {
     movie_path: String,
     time_interval: u32,
     time_type: i32,
+    frame_time_type: i32,
     frame_count: u64,
     exit_flag: i32,
 }
@@ -64,6 +65,18 @@ impl Config {
     }
     pub fn get_time_type(&self) -> i32 {
         self.time_type
+    }
+
+    pub fn set_frame_time_type(&mut self, time_type: Timetype) {
+        self.frame_time_type = match time_type {
+            Timetype::None => 0,
+            Timetype::Second => 1,
+            Timetype::Minute => 2,
+            Timetype::Hour => 3,
+        };
+    }
+    pub fn get_frame_time_type(&self) -> i32 {
+        self.frame_time_type
     }
 
     pub fn set_time_interval(&mut self, time_interval: u32) {
@@ -100,11 +113,8 @@ impl Config {
         }
     }
 
-    pub fn should_exit(&mut self) -> bool {
-        match self.exit_flag {
-            0 => false,
-            _ => true,
-        }
+    pub fn should_exit(&self) -> bool {
+        !matches!(self.exit_flag, 0)
     }
 }
 
@@ -121,6 +131,7 @@ impl Default for Config {
             movie_path: String::from(movie_path.to_str().unwrap()),
             time_interval: ((60 * 60) / 24) as u32,
             time_type: 1,
+            frame_time_type: 1,
             frame_count: 1,
             exit_flag: 0,
         };
