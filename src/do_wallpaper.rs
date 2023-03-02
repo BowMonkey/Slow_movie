@@ -47,11 +47,7 @@ pub fn main() -> Result<(), Errors> {
                 }
                 Err(e) => {
                     log::error!("ffmpeg is not exist! Error:{}", e);
-                    let _result = MessageDialog::new()
-                        .set_title("Error")
-                        .set_text("Get ffprobe path failed! ")
-                        .set_type(MessageType::Error)
-                        .show_alert();
+                    alert_dialog("Get ffprobe path failed! ");
                     return Err(Errors::InnerIOError(e));
                 }
             };
@@ -59,11 +55,7 @@ pub fn main() -> Result<(), Errors> {
                 Ok(n) => n,
                 Err(e) => {
                     log::error!("Get total frame number from ffmprobe error!");
-                    let _result = MessageDialog::new()
-                    .set_title("Error")
-                    .set_text("Get total frame number failed! ")
-                    .set_type(MessageType::Error)
-                    .show_alert();
+                    alert_dialog("Get total frame number failed! ");
                     return Err(e);
                 }
             };
@@ -100,11 +92,7 @@ pub fn main() -> Result<(), Errors> {
                 }
                 Err(e) => {
                     log::error!("ffmpeg is not exist! Error:{}", e);
-                    let _result = MessageDialog::new()
-                        .set_title("Error")
-                        .set_text("Get ffmpeg path failed! ")
-                        .set_type(MessageType::Error)
-                        .show_alert();
+                    alert_dialog("Get ffmpeg path failed! ");
                     return;
                 }
             };
@@ -124,11 +112,7 @@ pub fn main() -> Result<(), Errors> {
                         "Convert frame to picture error! Error:{}",
                         String::from_utf8_lossy(&output.stdout).to_string()
                     );
-                    let _result = MessageDialog::new()
-                    .set_title("Error")
-                    .set_text("Convert frame to picture failed! ")
-                    .set_type(MessageType::Error)
-                    .show_alert();
+                    alert_dialog("Convert frame to picture failed! ");
                     return e;
                 }
             }
@@ -142,11 +126,7 @@ pub fn main() -> Result<(), Errors> {
                 }
                 Err(e) => {
                     log::error!("frame.png is not exist! Error:{}", e);
-                    let _result = MessageDialog::new()
-                        .set_title("Error")
-                        .set_text("Get frame picture failed! ")
-                        .set_type(MessageType::Error)
-                        .show_alert();
+                    alert_dialog("Get frame picture failed! ");
                     return;
                 }
             };
@@ -154,21 +134,13 @@ pub fn main() -> Result<(), Errors> {
                 Ok(exist) => {
                     if !exist {
                         log::error!("frame.png is not exist!");
-                        let _result = MessageDialog::new()
-                            .set_title("Error")
-                            .set_text("Get frame picture failed! ")
-                            .set_type(MessageType::Error)
-                            .show_alert();
+                        alert_dialog("Get frame picture failed! ");
                         return;
                     }
                 }
                 Err(e) => {
                     log::error!("frame.png is not exist! Error:{}", e);
-                    let _result = MessageDialog::new()
-                        .set_title("Error")
-                        .set_text("Get frame picture failed! ")
-                        .set_type(MessageType::Error)
-                        .show_alert();
+                    alert_dialog("Get frame picture failed! ");
                     return;
                 }
             }
@@ -182,11 +154,7 @@ pub fn main() -> Result<(), Errors> {
                 }
                 Err(e) => {
                     log::error!("Set frame.png as wallper error! Error:{}", e);
-                    let _result = MessageDialog::new()
-                        .set_title("Error")
-                        .set_text("Set frame as wallpaper failed! ")
-                        .set_type(MessageType::Error)
-                        .show_alert();
+                    alert_dialog("Set frame as wallpaper failed! ");
                 }
             };
 
