@@ -95,12 +95,12 @@ impl Config {
 
     pub fn set_exit_flag(&mut self, flag: bool) {
         self.exit_flag = match flag {
-            true => 0,
-            _ => 1,
+            true => 1,
+            _ => 0,
         }
     }
 
-    pub fn get_exit_flag(&mut self) -> bool {
+    pub fn should_exit(&mut self) -> bool {
         match self.exit_flag {
             0 => false,
             _ => true,

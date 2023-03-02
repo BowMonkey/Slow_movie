@@ -4,11 +4,17 @@ pub enum Errors {
     #[error("Can not find gui.exe")]
     GuiLost,
 
+    #[error("Run gui.exe error. Message:{0}")]
+    GuiRunError(String),
+
     #[error("Can not find ffprobe.exe")]
     FfprobeLost,
 
     #[error("Can not find ffmpeg.exe")]
     FfmpegLost,
+
+    #[error("Can not find frame.png")]
+    FramePictureLost,
 
     #[error("Run ffmpeg.exe error. Message:{0}")]
     FfmpegRunError(String),
@@ -27,6 +33,9 @@ pub enum Errors {
 
     #[error(transparent)]
     InnerIOError(#[from] std::io::Error),
+
+    #[error(transparent)]
+    LogError(#[from] fast_log::error::LogError),
 
     #[error("invalid header (expected {expected:?}, found {found:?})")]
     InvalidHeader { expected: String, found: String },

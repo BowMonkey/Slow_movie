@@ -9,3 +9,6 @@ pub use utils::*;
 
 pub mod video_process;
 pub use video_process::*;
+
+pub mod log;
+pub use crate::log::*;

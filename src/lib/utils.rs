@@ -31,10 +31,10 @@ pub fn delete_file(path: &str) -> Result<(), Errors> {
 }
 
 use native_dialog::{MessageDialog, MessageType};
-pub fn alert_dialog(msg:&str){
+pub fn alert_dialog(msg: &str) {
     let _result = MessageDialog::new()
-    .set_title("Error")
-    .set_text(msg)
-    .set_type(MessageType::Error)
-    .show_alert();
+        .set_title("Error")
+        .set_text(msg)
+        .set_type(MessageType::Error)
+        .show_alert();
 }

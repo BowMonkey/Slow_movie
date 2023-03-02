@@ -19,7 +19,6 @@ use utillib::load as config_load;
 use utillib::save_config;
 use utillib::Timetype;
 
-
 pub fn main() -> iced::Result {
     SlowMovie::run(Settings {
         window: window::Settings {
@@ -197,8 +196,8 @@ impl Application for SlowMovie {
             }
             Message::Exit => {
                 let mut conf = config_load();
-                save_config(&conf);
                 conf.set_exit_flag(true);
+                save_config(&conf);
                 return window::close();
             }
         }

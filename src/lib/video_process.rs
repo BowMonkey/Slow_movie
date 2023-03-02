@@ -11,11 +11,13 @@ pub fn generate_frame_count(ffprobe: &String, moviepath: &String) -> Result<u64,
             .creation_flags(0x08000000)
             .stdout(Stdio::piped())
             .spawn()
-            .expect("failed to execute process")
+            .expect("failed to execute ffprobe.exe")
     } else {
         return Err(Errors::FfprobeLost);
     };
-    let output = child.wait_with_output().expect("failed to wait on child");
+    let output = child
+        .wait_with_output()
+        .expect("failed to wait on child ffprobe.exe");
     let total_frame = String::from_utf8_lossy(&output.stdout).to_string();
     let total_frame = strip_trailing_newline(&total_frame);
     match total_frame.parse::<u64>() {
@@ -50,11 +52,13 @@ pub fn generate_frame_picture(
             .creation_flags(0x08000000)
             .stdout(Stdio::piped())
             .spawn()
-            .expect("failed to execute process")
+            .expect("failed to execute ffmpeg.exe")
     } else {
         return Err(Errors::OSTypeError);
     };
-    let output = child.wait_with_output().expect("Faile to wait on child.");
+    let output = child
+        .wait_with_output()
+        .expect("Faile to wait on child ffmpeg.exe .");
     if !output.status.success() {
         return Err(Errors::FfmpegRunError(
             String::from_utf8_lossy(&output.stdout).to_string(),
