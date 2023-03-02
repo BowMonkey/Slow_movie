@@ -1,23 +1,27 @@
 #![windows_subsystem = "windows"]
 
+use std::{thread, time::Duration};
 use utillib::Errors;
 pub fn main() -> Result<(), Errors> {
     let lock = named_lock::NamedLock::create("slowmovie")?;
     let _guard = lock.try_lock();
     match _guard {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            println!("I'm the chosen one!");
+        },
         Err(e) => {
             match e {
                 named_lock::Error::WouldBlock => {
-                    println!("double open, call gui!");
+                    println!("Find brothers, call gui!");
                     //call gui
-                    Ok(())
                 }
                 _ => {
                     println!("Other Error!");
-                    return Err(Errors::DoubleOpenError(e));
                 }
             }
         }
     }
+    thread::sleep(Duration::from_secs(10));
+    println!("die!");
+    Ok(())
 }
