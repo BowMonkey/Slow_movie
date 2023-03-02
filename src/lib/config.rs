@@ -1,9 +1,36 @@
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 
-use serde::{Deserialize, Serialize};
-
-use crate::Timetype;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Timetype {
+    Second,
+    Minute,
+    Hour,
+    None,
+}
+impl Timetype {
+    pub const ALL: [Timetype; 3] = [Timetype::Second, Timetype::Minute, Timetype::Hour];
+}
+impl Default for Timetype {
+    fn default() -> Timetype {
+        Timetype::Second
+    }
+}
+impl std::fmt::Display for Timetype {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Timetype::Second => "Second",
+                Timetype::Minute => "Minute",
+                Timetype::Hour => "Hour",
+                Timetype::None => "None",
+            }
+        )
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
@@ -12,6 +39,7 @@ pub struct Config {
     time_interval: u32,
     time_type: i32,
     frame_count: u64,
+    exit_flag: i32,
 }
 
 impl Config {
@@ -64,6 +92,20 @@ impl Config {
     pub fn save(&self) {
         save_config(self);
     }
+
+    pub fn set_exit_flag(&mut self, flag: bool) {
+        self.exit_flag = match flag {
+            true => 0,
+            _ => 1,
+        }
+    }
+
+    pub fn get_exit_flag(&mut self) -> bool {
+        match self.exit_flag {
+            0 => false,
+            _ => true,
+        }
+    }
 }
 
 impl Default for Config {
@@ -80,6 +122,7 @@ impl Default for Config {
             time_interval: ((60 * 60) / 24) as u32,
             time_type: 1,
             frame_count: 1,
+            exit_flag: 0,
         };
 
         conf
